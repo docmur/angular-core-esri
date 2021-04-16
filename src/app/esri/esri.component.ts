@@ -151,8 +151,6 @@ export class EsriComponent implements OnInit, OnDestroy {
       this.initializeMap().then(() => {
         // The map has been initialized
         this.zone.run(() => {
-          console.log('mapView ready: ');
-
           /* Grab some data */
           this.dummyData = this.esri.grabData();
           this.fixMapData().then( () => {
@@ -160,8 +158,6 @@ export class EsriComponent implements OnInit, OnDestroy {
               this.map.add(this.featureLayer);
             });
           });
-
-          console.log('Dummy Data');
         });
       });
 
