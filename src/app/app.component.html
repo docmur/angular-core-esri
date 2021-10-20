@@ -11,7 +11,7 @@
 </style>
 
 <div style="display: flex; flex-direction: column;">
-  <h1>Page: {{page}}&nbsp;&nbsp;&nbsp;&nbsp;Timeout: {{timeout / 1000}} Seconds</h1>
+  <h1>Page: {{page}}&nbsp;&nbsp;&nbsp;&nbsp;Timeout: {{timeout / 1000}} Seconds / Timeout: {{timeout / 60000}} Minutes</h1>
 </div>
 
 <button (click)="page = 'dashboard'">Dashboard</button>
@@ -23,8 +23,8 @@
 <!--<button (click)="stopToggle()">{{stop ? 'Stop' : 'Run'}}</button>-->
 
 <app-dashboard *ngIf="page=='dashboard'"></app-dashboard>
-<app-esri *ngIf="page=='esri1'"></app-esri>
-<app-esri *ngIf="page=='esri2'"></app-esri>
-<app-esri *ngIf="page=='esri3'"></app-esri>
-<app-esri *ngIf="page=='esri4'"></app-esri>
-<app-esri *ngIf="page=='esri5'"></app-esri>
+<app-esri *ngIf="page=='esri1'" [mapId]="'map1'"></app-esri>
+<app-esri *ngIf="page=='esri2'" [mapId]="'map2'"></app-esri>
+<app-esri *ngIf="page=='esri3'" [mapId]="'map3'"></app-esri>
+<app-esri *ngIf="page=='esri4'" [mapId]="'map4'"></app-esri>
+<app-esri *ngIf="page=='esri5'" [mapId]="'map5'"></app-esri>
