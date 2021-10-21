@@ -6,7 +6,7 @@ import {
 import WebMap from '@arcgis/core/WebMap';
 import MapView from '@arcgis/core/views/MapView';
 import {MapList} from '../stores/models/map.model';
-import {UpdateMapAction} from '../stores/actions/map.actions';
+import {AddMapAction} from '../stores/actions/map.actions';
 import {Store} from '@ngrx/store';
 import {AppState} from '../stores/models/app-model.state';
 import * as _ from 'lodash';
@@ -16,29 +16,52 @@ import * as _ from 'lodash';
 })
 export class EsriMapService {
 
+  // NOTE: Map ID is how we identify the object in the store
   private mapId: string;
+
+  // NOTE: Map / View
   private webMap: WebMap;
   private mapView: MapView;
+
+  // NOTE: This allows us to attach / remove the mapViewContainer DIV from the ElementRef
   private renderer: Renderer2;
+
+  // NOTE: This stores the list of divs allocated for the map
   private mapViewContainer: HTMLDivElement[] = [];
+
+  // NOTE: This denotes what map div to grab, from the above array
+  // NOTE: -1 means we have no map div allocated for ourselves
   private mapContainerIdx = -1;
+
+  // NOTE: This should place us in Creston
   private center: Array<number> = [-116.51212386503, 49.1030138147457];
 
   constructor(private rendererFactory: RendererFactory2,
-              private store: Store<AppState>) {
-  }
+              private store: Store<AppState>) {}
 
   public setMapID(mapID: string): void {
     this.mapId = mapID;
   }
 
-  public initializeMapView(elementRef: ElementRef, Map: MapList): Promise<MapView> {
+  public initializeMapView(elementRef: ElementRef, Map: MapList): Promise<{map: WebMap, view: MapView}> {
     return new Promise((r) => {
+      // NOTE: Allocate a new map object
+      if (Map === undefined) {
+        Map = {
+          id: this.mapId,
+          container: -1,
+          map: new WebMap({
+            basemap: 'topo'
+          }),
+          view: undefined
+        };
+      }
+
       this.createMapViewContainer(elementRef, Map);
       this.createWebMap(Map);
       this.createMapView(Map);
 
-      r(this.mapView);
+      r({map: this.webMap, view: this.mapView});
     });
   }
 
@@ -76,8 +99,8 @@ export class EsriMapService {
 
       Map.view = this.mapView;
 
-      // NOTE: Backup the view
-      this.store.dispatch(new UpdateMapAction(Map));
+      // NOTE: We've allocated the entire map, now add it
+      this.store.dispatch(new AddMapAction(Map));
     } else {
       this.mapView = Map.view;
     }

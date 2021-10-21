@@ -1,7 +1,7 @@
 import {
   Component,
   OnInit,
-  OnDestroy, SimpleChanges,
+  OnDestroy,
 } from '@angular/core';
 
 @Component({
@@ -9,34 +9,28 @@ import {
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
 })
-export class AppComponent implements OnInit, OnDestroy {
-  public page = 'dashboard';
-  public timeout = 30000;
-  public stop = true;
+export class AppComponent implements OnInit {
+  public page = 'esri1';
+  public timeout = 2500;
+
+  public seconds = (this.timeout / 1000);
+  public minutes = (this.timeout / 60000).toFixed(2);
+  public tabChange = 1;
 
   ngOnInit(): void {
-    this.stopToggle(true);
+    this.startPageTransitions();
   }
 
-  stopToggle(fromInit: boolean = false): void {
-    const buttons = ['dashboard', 'esri1', 'esri2', 'esri3', 'esri4', 'esri5'];
-    let index = 0;
+  startPageTransitions(): void {
+    const buttons = ['esri1', 'esri2', 'esri3', 'esri4', 'esri5'];
+    let index = 1;
 
-    if (fromInit === false) {
-      this.stop = !this.stop;
-    }
-
-    if (this.stop === true) {
-      const cycleInterval = setInterval(() => {
-        this.page = buttons[index];
-        index++;
-        if (index >= buttons.length) {
-          index = 0;
-        }
-      }, this.timeout);
-    }
-  }
-
-  ngOnDestroy(): void {
+    setInterval(() => {
+      this.page = buttons[index++];
+      this.tabChange++;
+      if (index >= buttons.length) {
+        index = 0;
+      }
+    }, this.timeout);
   }
 }

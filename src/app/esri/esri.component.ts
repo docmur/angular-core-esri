@@ -45,8 +45,7 @@ export class EsriComponent implements OnInit, OnDestroy {
   constructor(private esri: EsriService,
               private mapService: EsriMapService,
               private rendererFactory: RendererFactory2,
-              private store: Store<AppState>,
-              private zone: NgZone) { }
+              private store: Store<AppState>) { }
 
   addMap(Map: MapList): any {
     this.store.dispatch(new AddMapAction(Map));
@@ -94,7 +93,7 @@ export class EsriComponent implements OnInit, OnDestroy {
   buildFeatureSettings(geometryType, data): any {
     return {
       source: data,
-      renderer: this.buildRenderSettings(data),
+      renderer: this.buildRenderSettings(),
       fields: this.fields,
       objectIdField: 'ObjectID',
       geometryType,
@@ -105,33 +104,25 @@ export class EsriComponent implements OnInit, OnDestroy {
     };
   }
 
-  buildRenderSettings(data): any {
+  buildRenderSettings(): any {
     let colour;
     switch (this.mapId) {
       case 'map1':
-        console.log('Map 1');
         colour = '#9ee86b';
         break;
       case 'map2':
-        console.log('Map 2');
         colour = '#9b7935';
         break;
       case 'map3':
-        console.log('Map 3');
         colour = '#ce5e42';
         break;
       case 'map4':
-        console.log('Map 4');
         colour = '#5da9fc';
         break;
       default:
-        console.log('Map 5');
         colour = '#c037bb';
         break;
     }
-
-    console.log('Map ID: ' + this.mapId);
-    console.log('Colour: ' + colour);
 
     return {
       type: 'simple',
@@ -152,33 +143,18 @@ export class EsriComponent implements OnInit, OnDestroy {
 
     // Required: Set this property to insure assets resolve correctly.
     // IMPORTANT: the directory path may be different between your production app and your dev app
-    // esriConfig.assetsPath = './assets';
+    esriConfig.assetsPath = './assets';
 
     this.subscriptions.push(
       this.store.select(SelectMapByID({id: this.mapId}))
         .pipe(filter(Map => Map !== null)) // NOTE: Remove all NULL Items
         .subscribe((Map) => {
-          if (Map) {
-            this.mapService.setMapID(this.mapId);
-            this.mapService.initializeMapView(this.mapViewEl, Map).then((storeView) => {
-              this.view = storeView;
-              this.map = Map.map;
-              this.initializeMap();
-            });
-          } else {
-            console.log('Adding Map TO STORE');
-            // NOTE: We need to allocate a map first
-            Map = {
-              id: this.mapId,
-              container: -1,
-              map: new WebMap({
-                basemap: 'topo'
-              }),
-              view: undefined
-            };
-
-            this.addMap(Map);
-          }
+          this.mapService.setMapID(this.mapId);
+          this.mapService.initializeMapView(this.mapViewEl, Map).then((storeView) => {
+            this.map = storeView.map;
+            this.view = storeView.view;
+            this.initializeMap();
+          });
         })
     );
   }
