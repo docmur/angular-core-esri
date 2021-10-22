@@ -12,12 +12,11 @@ import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import * as _ from 'lodash';
 import {Store} from '@ngrx/store';
 import {AppState} from '../stores/models/app-model.state';
-import {MapList} from '../stores/models/map.model';
-import {AddMapAction} from '../stores/actions/map.actions';
 import {SelectMapByID} from '../stores/selectors/map.selectors';
 import {filter, takeUntil} from 'rxjs/operators';
 import {EsriMapService} from '../service/esri-map.service';
-import {Subject, Subscription} from 'rxjs';
+import {Subject} from 'rxjs';
+import Query from '@arcgis/core/rest/support/Query';
 
 @Component({
   selector: 'app-esri',
@@ -51,20 +50,109 @@ export class EsriComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
+  applyEditsToLayer(edits): Promise<number | Error> {
+    return new Promise((r, j) => {
+      this.featureLayer.applyEdits(edits).then((results) => {
+        if (results.deleteFeatureResults.length > 0) {
+          r(results.deleteFeatureResults);
+        }
+
+        if (results.addFeatureResults.length > 0){
+          const objectIds = [];
+
+          results.addFeatureResults.forEach((item) => {
+            objectIds.push(item.objectId);
+          });
+
+          // query the newly added features from the layer
+          this.featureLayer.queryFeatures( {objectIds} ).then((addedResults) => {
+            r(addedResults.features.length);
+          });
+        }
+      }).catch((error) => {
+        console.error(error);
+        j(error);
+      });
+    });
+  }
+
+  addFeatures(): Promise<number | Error> {
+    return new Promise((r, j) => {
+      // addEdits object tells applyEdits that you want to add the features
+      const addEdits = {
+        addFeatures: this.sortedMapData
+      };
+
+      // apply the edits to the layer
+      this.applyEditsToLayer(addEdits).then((addedItems: number) => {
+        r(addedItems);
+      }).catch((error) => {
+        j(error);
+      });
+    });
+  }
+
+  removeAllFeatureData(): Promise<number | Error> {
+    return new Promise((r, j) => {
+      if (this.featureLayer) {
+        const query = new Query({
+          outFields: ['*'],
+          where: '1 = 1',
+        });
+
+        this.featureLayer.queryFeatures(query).then((results) => {
+          const deleteEdits = {
+            deleteFeatures: results.features
+          };
+
+          return this.applyEditsToLayer(deleteEdits).then((deleteCount) => {
+            r(deleteCount);
+          }).catch((error) => {
+            j(error);
+          });
+        });
+      } else {
+        r(0);
+      }
+    });
+  }
+
   initializeMap(): void {
     try {
       if (this.map) {
         this.dummyData = this.esri.grabData();
-        this.map.removeAll();
         this.fixMapData().then(() => {
-          this.createFeatureLayers().then(() => {
-            this.map.add(this.featureLayer);
+          this.removeAllFeatureData().then(() => {
+            this.featureLayer.renderer = this.buildRenderSettings();
+            this.addFeatures().then((addedElements) => {
+            });
           });
         });
       }
     } catch (error) {
       console.log(error);
     }
+  }
+
+  initMap(): void {
+    this.dummyData = this.esri.grabData();
+    this.fixMapData().then(() => {
+      // this.map.layers.removeAll();
+      this.removeAllFeatureData().then(() => {
+        try {
+          if (this.featureLayer) {
+            this.featureLayer.destroy();
+            this.featureLayer = null;
+          }
+        } catch (error) {
+          console.log(error);
+        }
+
+        this.createFeatureLayers().then(() => {
+          this.map.add(this.featureLayer);
+        });
+      });
+    });
   }
 
   fixMapData(): Promise<unknown> {
@@ -106,6 +194,7 @@ export class EsriComponent implements OnInit, OnDestroy, OnChanges {
       spatialReference: {
         wkid: 4326
       },
+      id: 'test',
       title: 'test'
     };
   }
@@ -146,17 +235,16 @@ export class EsriComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnInit(): any {
+
     this.store.select(SelectMapByID({id: this.mapId}))
       .pipe(filter(Map => Map !== null)) // NOTE: Remove all NULL Items
       .pipe(takeUntil(this.ngUnsubscribe))
       .subscribe((Map) => {
-        console.log('Triggered');
-
         this.mapService.setMapID(this.mapId);
         this.mapService.initializeMapView(this.mapViewEl, Map).then((storeView) => {
           this.map = storeView.map;
           this.view = storeView.view;
-          this.initializeMap();
+          this.initMap();
         }).catch(() => {
           this.ngUnsubscribe.next();
           this.ngUnsubscribe.complete();
@@ -165,10 +253,21 @@ export class EsriComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   ngOnDestroy(): void {
-    this.featureLayer = null;
-    this.sortedMapData = null;
-    this.mapService.removeMapViewContainer(this.mapViewEl);
-    this.ngUnsubscribe.next();
-    this.ngUnsubscribe.complete();
+    this.removeAllFeatureData().then(() => {
+      // NOTE: Delete successful
+      try {
+        this.featureLayer.destroy();
+        this.featureLayer = null;
+      } catch (error) {
+        console.log(error);
+      }
+
+      this.mapService.removeMapViewContainer(this.mapViewEl);
+      this.ngUnsubscribe.next();
+      this.ngUnsubscribe.complete();
+    }).catch((error) => {
+      console.log(error);
+    });
+
   }
 }

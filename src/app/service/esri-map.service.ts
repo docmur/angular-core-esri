@@ -103,8 +103,7 @@ export class EsriMapService {
         Map.view = this.mapView;
 
         // NOTE: We've allocated the entire map, now add it
-        console.log('Adding Map Object --- This shouldn\'t cause a trigger');
-        this.store.dispatch(new AddMapAction(Map))
+        this.store.dispatch(new AddMapAction(Map));
         j(null);
       } else {
         this.mapView = Map.view;
