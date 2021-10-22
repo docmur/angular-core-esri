@@ -16,19 +16,27 @@ export class AppComponent implements OnInit {
   public seconds = (this.timeout / 1000);
   public minutes = (this.timeout / 60000).toFixed(2);
   public tabChange = 1;
+  public mapName = '';
+
+  public esriMaps: Array<string> = [];
 
   ngOnInit(): void {
+    // NOTE: This will allocate the maps:
+    //   map1
+    //   map2
+    //   map3...
+    this.esriMaps = Array.from({length: 5}, (_, i) => 'map' + (++i));
+
+    this.mapName = this.esriMaps[0];
     this.startPageTransitions();
   }
 
   startPageTransitions(): void {
-    const buttons = ['esri1', 'esri2', 'esri3', 'esri4', 'esri5'];
     let index = 1;
-
     setInterval(() => {
-      this.page = buttons[index++];
       this.tabChange++;
-      if (index >= buttons.length) {
+      this.mapName = this.esriMaps[index++];
+      if (index >= this.esriMaps.length) {
         index = 0;
       }
     }, this.timeout);

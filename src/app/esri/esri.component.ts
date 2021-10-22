@@ -4,11 +4,9 @@ import {
   ViewChild,
   ElementRef,
   OnDestroy,
-  RendererFactory2, Input, NgZone
+  RendererFactory2, Input, OnChanges, SimpleChanges
 } from '@angular/core';
 
-import WebMap from '@arcgis/core/WebMap';
-import esriConfig from '@arcgis/core/config.js';
 import {EsriService} from '../service/esri.service';
 import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import * as _ from 'lodash';
@@ -17,16 +15,16 @@ import {AppState} from '../stores/models/app-model.state';
 import {MapList} from '../stores/models/map.model';
 import {AddMapAction} from '../stores/actions/map.actions';
 import {SelectMapByID} from '../stores/selectors/map.selectors';
-import {filter} from 'rxjs/operators';
+import {filter, takeUntil} from 'rxjs/operators';
 import {EsriMapService} from '../service/esri-map.service';
-import {Subscription} from 'rxjs';
+import {Subject, Subscription} from 'rxjs';
 
 @Component({
   selector: 'app-esri',
   templateUrl: './esri.component.html',
   styleUrls: ['./esri.component.css'],
 })
-export class EsriComponent implements OnInit, OnDestroy {
+export class EsriComponent implements OnInit, OnDestroy, OnChanges {
   private view: any = null;
   private dummyData: any;
   private fields: any;
@@ -34,7 +32,7 @@ export class EsriComponent implements OnInit, OnDestroy {
   private sortedMapData: any;
   private map: any = null;
 
-  private subscriptions: Subscription[] = [];
+  private ngUnsubscribe: Subject<any> = new Subject();
 
   @ViewChild('mapViewNode', { static: true }) private mapViewEl: ElementRef;
 
@@ -47,18 +45,26 @@ export class EsriComponent implements OnInit, OnDestroy {
               private rendererFactory: RendererFactory2,
               private store: Store<AppState>) { }
 
-  addMap(Map: MapList): any {
-    this.store.dispatch(new AddMapAction(Map));
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.mapId) {
+      this.initializeMap();
+    }
   }
 
   initializeMap(): void {
-    this.dummyData = this.esri.grabData();
-    this.fixMapData().then( () => {
-      this.createFeatureLayers().then(() => {
-        this.featureLayer.visible = true;
-        this.map.add(this.featureLayer);
-      });
-    });
+    try {
+      if (this.map) {
+        this.dummyData = this.esri.grabData();
+        this.map.removeAll();
+        this.fixMapData().then(() => {
+          this.createFeatureLayers().then(() => {
+            this.map.add(this.featureLayer);
+          });
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   fixMapData(): Promise<unknown> {
@@ -140,27 +146,29 @@ export class EsriComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): any {
+    this.store.select(SelectMapByID({id: this.mapId}))
+      .pipe(filter(Map => Map !== null)) // NOTE: Remove all NULL Items
+      .pipe(takeUntil(this.ngUnsubscribe))
+      .subscribe((Map) => {
+        console.log('Triggered');
 
-    // Required: Set this property to insure assets resolve correctly.
-    // IMPORTANT: the directory path may be different between your production app and your dev app
-    esriConfig.assetsPath = './assets';
-
-    this.subscriptions.push(
-      this.store.select(SelectMapByID({id: this.mapId}))
-        .pipe(filter(Map => Map !== null)) // NOTE: Remove all NULL Items
-        .subscribe((Map) => {
-          this.mapService.setMapID(this.mapId);
-          this.mapService.initializeMapView(this.mapViewEl, Map).then((storeView) => {
-            this.map = storeView.map;
-            this.view = storeView.view;
-            this.initializeMap();
-          });
-        })
-    );
+        this.mapService.setMapID(this.mapId);
+        this.mapService.initializeMapView(this.mapViewEl, Map).then((storeView) => {
+          this.map = storeView.map;
+          this.view = storeView.view;
+          this.initializeMap();
+        }).catch(() => {
+          this.ngUnsubscribe.next();
+          this.ngUnsubscribe.complete();
+        });
+      });
   }
 
   ngOnDestroy(): void {
+    this.featureLayer = null;
+    this.sortedMapData = null;
     this.mapService.removeMapViewContainer(this.mapViewEl);
-    this.subscriptions.forEach((sub) => sub.unsubscribe());
+    this.ngUnsubscribe.next();
+    this.ngUnsubscribe.complete();
   }
 }

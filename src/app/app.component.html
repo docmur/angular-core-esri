@@ -1,6 +1,5 @@
 <style>
   :host {
-    margin: 2rem;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     font-size: 14px;
     color: #333;
@@ -11,20 +10,11 @@
 </style>
 
 <div style="display: flex; flex-direction: column;">
-  <h2>Page: {{page}}</h2>
+  <h2>Page: {{mapName}}</h2>
   <h2>Timeout: {{seconds}} Seconds</h2>
   <h2>Timeout: {{minutes}} Minutes</h2>
   <h2>Maps Loaded: {{tabChange}}</h2>
 </div>
 
-<button (click)="page = 'esri1'">ESRI 1</button>
-<button (click)="page = 'esri2'">ESRI 2</button>
-<button (click)="page = 'esri3'">ESRI 3</button>
-<button (click)="page = 'esri4'">ESRI 4</button>
-<button (click)="page = 'esri5'">ESRI 5</button>
+<app-esri [mapId]="mapName"></app-esri>
 
-<app-esri *ngIf="page=='esri1'" [mapId]="'map1'"></app-esri>
-<app-esri *ngIf="page=='esri2'" [mapId]="'map2'"></app-esri>
-<app-esri *ngIf="page=='esri3'" [mapId]="'map3'"></app-esri>
-<app-esri *ngIf="page=='esri4'" [mapId]="'map4'"></app-esri>
-<app-esri *ngIf="page=='esri5'" [mapId]="'map5'"></app-esri>

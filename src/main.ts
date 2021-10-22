@@ -5,7 +5,7 @@ import { AppModule } from './app/app.module';
 
 enableProdMode();
 
-const disableLog = true;
+const disableLog = false;
 if (window && disableLog) {
     window.console.log = () => {
     };

@@ -44,7 +44,7 @@ export class EsriMapService {
   }
 
   public initializeMapView(elementRef: ElementRef, Map: MapList): Promise<{map: WebMap, view: MapView}> {
-    return new Promise((r) => {
+    return new Promise((r, j) => {
       // NOTE: Allocate a new map object
       if (Map === undefined) {
         Map = {
@@ -59,9 +59,11 @@ export class EsriMapService {
 
       this.createMapViewContainer(elementRef, Map);
       this.createWebMap(Map);
-      this.createMapView(Map);
-
-      r({map: this.webMap, view: this.mapView});
+      this.createMapView(Map).then(() => {
+        r({map: this.webMap, view: this.mapView});
+      }).catch(() => {
+        j();
+      })
     });
   }
 
@@ -88,22 +90,27 @@ export class EsriMapService {
     this.webMap = Map.map;
   }
 
-  private createMapView(Map: MapList): void {
-    if (Map.view === undefined) {
-      this.mapView = new MapView({
-        container: this.mapViewContainer[this.mapContainerIdx],
-        center: this.center,
-        map: this.webMap,
-        zoom: 13
-      });
+  private createMapView(Map: MapList): Promise<null> {
+    return new Promise((r, j) => {
+      if (Map.view === undefined) {
+        this.mapView = new MapView({
+          container: this.mapViewContainer[this.mapContainerIdx],
+          center: this.center,
+          map: this.webMap,
+          zoom: 13
+        });
 
-      Map.view = this.mapView;
+        Map.view = this.mapView;
 
-      // NOTE: We've allocated the entire map, now add it
-      this.store.dispatch(new AddMapAction(Map));
-    } else {
-      this.mapView = Map.view;
-    }
+        // NOTE: We've allocated the entire map, now add it
+        console.log('Adding Map Object --- This shouldn\'t cause a trigger');
+        this.store.dispatch(new AddMapAction(Map))
+        j(null);
+      } else {
+        this.mapView = Map.view;
+        r(null);
+      }
+    });
   }
 
   private initializeRenderer(): void {
@@ -113,7 +120,7 @@ export class EsriMapService {
   }
 
   public removeMapViewContainer(elementRef: ElementRef): void {
-    if (this.mapViewContainer == null) {
+    if (this.mapViewContainer[this.mapContainerIdx] == null) {
       return;
     }
 
